@@ -1,0 +1,51 @@
+# Dental OPG X-ray Object Detection Dataset Configuration
+# Sudenaz Kabay - Bilgisayar Mühendisliği Öğrencisi
+
+# Dataset path (Google Drive için)
+path: /content/drive/MyDrive/Dental OPG XRAY Dataset/Dental OPG (Object Detection)/Augmented Dataset
+
+# Training/validation/test paths
+train: train/images
+val: valid/images
+test: test/images
+
+# Number of classes (senin dataset'inde 6 sınıf var)
+nc: 6
+
+# Class names (Google Colab notebook'undaki sınıflar)
+names:
+  0: BDC-BDR                    # Bridge/Crown
+  1: Caries                     # Çürük
+  2: 'Fractured Teeth'         # Kırık Diş
+  3: 'Healthy Teeth'           # Sağlıklı Diş
+  4: 'Impacted teeth'          # Gömülü Diş
+  5: Infection                  # Enfeksiyon
+
+# Training parameters (senin kullandığın değerler)
+batch: 8                       # Colab'de kullandığın batch
+epochs: 100                    # Eğitim epoch sayısı
+imgsz: 640                     # Görüntü boyutu
+device: 0                      # GPU
+workers: 8
+patience: 20
+seed: 42
+
+# Model settings
+model: yolov8n.pt              # Başlangıç modeli
+pretrained: true
+
+# Augmentation (isteğe bağlı)
+augment: true
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 0.0
+translate: 0.1
+scale: 0.5
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+mosaic: 1.0
+mixup: 0.0
+copy_paste: 0.0
