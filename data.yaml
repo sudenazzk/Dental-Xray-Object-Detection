@@ -1,0 +1,11 @@
+path: .
+train: images/train
+val: images/test
+
+names:
+  0: BDC-BDR
+  1: Caries
+  2: Fractured Teeth
+  3: Healthy Teeth
+  4: Impacted Teeth
+  5: Infection
