@@ -1,0 +1,683 @@
+
+<!-- 
+ <!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Diş Analiz</title>
+
+<style>
+body {font-family:'Segoe UI'; padding:20px; background:linear-gradient(to right,#f2f2f2,#9face6);}
+.container {max-width:1200px; margin:auto; background:#fff; padding:20px; border-radius:10px;}
+.box {flex:1; padding:10px;}
+#previewResultContainer {display:flex; gap:20px;}
+canvas {max-width:100%; cursor:pointer;}
+button {padding:10px 20px; font-size:16px;}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>🦷 Diş Analiz Sistemi</h2>
+
+<input type="file" id="imageInput"><br><br>
+
+<div id="previewResultContainer">
+<div class="box" id="preview">📷 Görsel yok</div>
+<div class="box" id="result">🔍 Sonuç yok</div>
+<div class="box" id="detail">🎯 Detay yok</div>
+</div>
+
+<br>
+<button onclick="analizEt()">🚀 Analiz Et</button>
+
+</div>
+
+<script>
+const fileInput = document.getElementById("imageInput");
+const preview = document.getElementById("preview");
+const resultDiv = document.getElementById("result");
+const detailDiv = document.getElementById("detail");
+
+let detections = [];
+let canvas, ctx;
+
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  if(file){
+    const url = URL.createObjectURL(file);
+    preview.innerHTML = `<img src="${url}" style="max-width:100%">`;
+  }
+});
+
+async function analizEt(){
+  const file = fileInput.files[0];
+
+  if(!file){
+    alert("Resim seç!");
+    return;
+  }
+
+  resultDiv.innerHTML = "🔄 Analiz ediliyor...";
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try{
+    const res = await fetch("http://127.0.0.1:5000/predict", {
+      method: "POST",
+      body: formData
+    });
+
+    if(!res.ok){
+      throw new Error("Sunucu hatası");
+    }
+
+    const data = await res.json();
+    console.log("Gelen veri:", data);
+
+    if(data.error){
+      resultDiv.innerHTML = "❌ " + data.error;
+      return;
+    }
+
+    detections = data.detections || [];
+
+    canvas = document.createElement("canvas");
+    const img = new Image();
+    img.src = data.result_image;
+
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx = canvas.getContext("2d");
+
+      ctx.drawImage(img, 0, 0);
+
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+
+      detections.forEach(det => {
+        const [x1,y1,x2,y2] = det.bbox;
+        ctx.strokeRect(x1, y1, x2-x1, y2-y1);
+      });
+
+      resultDiv.innerHTML = "<h3>🔍 Sonuç</h3>";
+      resultDiv.appendChild(canvas);
+    };
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+
+      let found = false;
+
+      detections.forEach(det => {
+        const [x1,y1,x2,y2] = det.bbox;
+
+        if(x >= x1 && x <= x2 && y >= y1 && y <= y2){
+          detailDiv.innerHTML = `
+            <h3>🎯 Detay</h3>
+            <p>Sınıf: ${det.class}</p>
+            <p>Confidence: ${(det.confidence*100).toFixed(2)}%</p>
+          `;
+          found = true;
+        }
+      });
+
+      if(!found){
+        detailDiv.innerHTML = "❌ Nesne yok";
+      }
+    });
+
+  } catch(err){
+    console.error(err);
+    resultDiv.innerHTML = "❌ Hata: " + err.message;
+  }
+}
+</script>
+
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diş Analiz Sistemi</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+    animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.header {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.header p {
+    opacity: 0.9;
+}
+
+.content {
+    padding: 30px;
+}
+
+.upload-area {
+    text-align: center;
+    padding: 40px;
+    border: 2px dashed #667eea;
+    border-radius: 10px;
+    background: #f8f9ff;
+    margin-bottom: 30px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.upload-area:hover {
+    border-color: #764ba2;
+    background: #f0f2ff;
+    transform: translateY(-2px);
+}
+
+.upload-area input {
+    display: none;
+}
+
+.upload-label {
+    cursor: pointer;
+    display: inline-block;
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50px;
+    font-weight: bold;
+    transition: transform 0.2s;
+}
+
+.upload-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+}
+
+.analyze-btn {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s;
+}
+
+.analyze-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+}
+
+.analyze-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.result-card {
+    background: #f8f9ff;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.result-card h3 {
+    color: #1e3c72;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+}
+
+.image-container {
+    text-align: center;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.image-container canvas {
+    max-width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.image-container canvas:hover {
+    transform: scale(1.02);
+}
+
+.detection-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.detection-item {
+    background: white;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.detection-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.detection-class {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.detection-stats {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.detail-card {
+    margin-top: 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+}
+
+.detail-card h3 {
+    margin-bottom: 15px;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error {
+    background: #fee;
+    color: #c33;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.success {
+    background: #efe;
+    color: #3c3;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+    .content {
+        padding: 20px;
+    }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🦷 Diş Görüntü Analiz Sistemi</h1>
+        <p>Yapay Zeka Destekli Diş Röntgeni Analizi</p>
+    </div>
+    
+    <div class="content">
+        <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+            <input type="file" id="imageInput" accept="image/*" />
+            <div class="upload-label">📸 Görsel Seç veya Sürükle</div>
+            <p style="margin-top: 15px; color: #666;">Desteklenen formatlar: JPG, PNG, JPEG</p>
+        </div>
+        
+        <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()">🚀 Analiz Et</button>
+        
+        <div class="results-grid" id="resultsGrid" style="display: none;">
+            <div class="result-card">
+                <h3>🔍 Analiz Sonucu</h3>
+                <div class="image-container">
+                    <canvas id="resultCanvas"></canvas>
+                </div>
+                <div id="imageInfo" style="margin-top: 10px; text-align: center;"></div>
+            </div>
+            
+            <div class="result-card">
+                <h3>📊 Tespit Edilenler</h3>
+                <div id="stats"></div>
+                <div id="detectionList" class="detection-list"></div>
+            </div>
+        </div>
+        
+        <div id="detailCard" style="display: none;">
+            <div class="detail-card">
+                <h3>🎯 Seçilen Bölge Detayı</h3>
+                <div id="selectedDetail"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDetections = [];
+let resultCanvas, ctx;
+
+document.getElementById('imageInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = function() {
+                document.querySelector('.upload-area').style.background = '#e8f0fe';
+            };
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+async function analyzeImage() {
+    const file = document.getElementById('imageInput').files[0];
+    if (!file) {
+        alert('Lütfen bir görsel seçin!');
+        return;
+    }
+    
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = '🔄 Analiz Yapılıyor...';
+    
+    const resultsGrid = document.getElementById('resultsGrid');
+    resultsGrid.style.display = 'none';
+    document.getElementById('detailCard').style.display = 'none';
+    
+    const resultDiv = document.querySelector('.result-card:first-child');
+    resultDiv.innerHTML = '<h3>🔍 Analiz Sonucu</h3><div class="spinner"></div><p style="text-align:center;">🔄 Model analiz yapıyor...</p>';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('http://127.0.0.1:5000/predict', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Sunucu hatası: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Gelen veri:', data);
+        
+        if (data.success) {
+            displayResults(data);
+        } else {
+            throw new Error(data.error || 'Bilinmeyen hata');
+        }
+    } catch (error) {
+        console.error('Hata:', error);
+        resultDiv.innerHTML = `<h3>🔍 Analiz Sonucu</h3><div class="error">❌ Hata: ${error.message}<br><br>💡 Kontrol edin:<br>• Backend çalışıyor mu?<br>• http://127.0.0.1:5000/health adresini açın</div>`;
+    } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = '🚀 Analiz Et';
+    }
+}
+
+function displayResults(data) {
+    currentDetections = data.detections;
+    
+    const resultsGrid = document.getElementById('resultsGrid');
+    resultsGrid.style.display = 'grid';
+    
+    // Görseli canvas'a çiz
+    resultCanvas = document.getElementById('resultCanvas');
+    ctx = resultCanvas.getContext('2d');
+    
+    const img = new Image();
+    img.src = data.result_image;
+    
+    img.onload = () => {
+        resultCanvas.width = img.width;
+        resultCanvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        // Tıklama olayı ekle
+        resultCanvas.onclick = (e) => {
+            const rect = resultCanvas.getBoundingClientRect();
+            const scaleX = resultCanvas.width / rect.width;
+            const scaleY = resultCanvas.height / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
+            
+            let found = false;
+            for (const det of currentDetections) {
+                const [x1, y1, x2, y2] = det.bbox;
+                if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
+                    showDetectionDetail(det);
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                document.getElementById('detailCard').style.display = 'none';
+            }
+        };
+    };
+    
+    // İstatistikleri göster
+    const statsHtml = `
+        <div style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <strong>📊 Toplam Tespit:</strong>
+                <span>${data.total_objects}</span>
+            </div>
+        </div>
+    `;
+    document.getElementById('stats').innerHTML = statsHtml;
+    
+    // Detection listesini göster
+    const detectionListHtml = currentDetections.map((det, index) => `
+        <div class="detection-item" style="border-left-color: ${getColorForClass(det.class_id)}" onclick="showDetectionDetail(currentDetections[${index}])">
+            <div class="detection-class">${det.class_name}</div>
+            <div class="detection-stats">
+                🎯 Güven: ${(det.confidence * 100).toFixed(2)}%<br>
+                📐 Boyut: ${det.bbox_width} x ${det.bbox_height} px<br>
+                ${det.mask ? `🎭 Alan: ${det.mask.area_percentage}%` : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    document.getElementById('detectionList').innerHTML = detectionListHtml;
+    
+    document.getElementById('imageInfo').innerHTML = `
+        <small style="color: #666;">📐 Görsel boyutu: ${data.image_size?.width || '?'} x ${data.image_size?.height || '?'} px</small>
+    `;
+}
+
+function showDetectionDetail(detection) {
+    const detailCard = document.getElementById('detailCard');
+    detailCard.style.display = 'block';
+    
+    let detailHtml = `
+        <div style="padding: 15px;">
+            <h4 style="color: ${getColorForClass(detection.class_id)}; margin-bottom: 15px;">
+                ${detection.class_name}
+            </h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <strong>🎯 Güven Skoru:</strong><br>
+                    ${(detection.confidence * 100).toFixed(2)}%
+                </div>
+                <div>
+                    <strong>📐 Konum:</strong><br>
+                    X: ${detection.bbox[0]}, Y: ${detection.bbox[1]}
+                </div>
+                <div>
+                    <strong>📏 Boyut:</strong><br>
+                    ${detection.bbox_width} x ${detection.bbox_height} px
+                </div>
+                <div>
+                    <strong>🎯 Merkez:</strong><br>
+                    (${detection.center[0]}, ${detection.center[1]})
+                </div>
+    `;
+    
+    if (detection.mask) {
+        detailHtml += `
+            <div>
+                <strong>🎭 Alan Oranı:</strong><br>
+                ${detection.mask.area_percentage}%
+            </div>
+            <div>
+                <strong>🖼️ Maske:</strong><br>
+                <img src="${detection.mask.image}" style="max-width: 100px; margin-top: 10px; border-radius: 5px;" />
+            </div>
+        `;
+    }
+    
+    detailHtml += `</div></div>`;
+    document.getElementById('selectedDetail').innerHTML = detailHtml;
+    
+    // Scroll to detail
+    detailCard.scrollIntoView({ behavior: 'smooth' });
+}
+
+function getColorForClass(classId) {
+    const colors = [
+        '#00ff00', '#ff0000', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff6600', '#ff0066', '#66ff00'
+    ];
+    return colors[classId % colors.length];
+}
+
+// Sağlık kontrolü
+async function checkHealth() {
+    try {
+        const response = await fetch('http://127.0.0.1:5000/health');
+        const data = await response.json();
+        if (data.status === 'healthy') {
+            console.log('✅ Backend sağlıklı çalışıyor');
+            if (data.classes) {
+                console.log('📋 Model sınıfları:', data.classes);
+            }
+        } else {
+            console.warn('⚠️ Backend sağlıksız:', data);
+        }
+    } catch (error) {
+        console.error('❌ Backend bağlantı hatası:', error);
+        document.querySelector('.result-card:first-child').innerHTML = `
+            <h3>🔍 Analiz Sonucu</h3>
+            <div class="error">
+                ❌ Backend sunucusuna bağlanılamıyor!<br><br>
+                💡 Lütfen backend'i başlatın:<br>
+                <code>python app.py</code>
+            </div>
+        `;
+    }
+}
+
+// Sayfa yüklendiğinde sağlık kontrolü yap
+checkHealth();
+</script>
+</body>
+</html>
